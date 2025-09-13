@@ -1,0 +1,42 @@
+# Use an official Python runtime as a parent image.
+# We'll use Python 3.12 as it's modern and well-supported by your libraries.
+# 'slim' reduces the image size.
+FROM python:3.12-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Install essential system dependencies needed for audio processing and other libraries.
+# - ffmpeg is crucial for pydub to handle audio files.
+# - libportaudio2 and portaudio19-dev are often needed by audio libraries.
+# - libsndfile1 is another common dependency for audio processing.
+# The '--no-install-recommends' flag helps keep the image lean.
+# We clean up apt caches afterwards to further reduce image size.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libportaudio2 \
+    portaudio19-dev \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the requirements file into the container at /app
+COPY requirements.txt ./
+
+# Install Python dependencies from requirements.txt
+# --no-cache-dir prevents pip from caching packages, which helps keep the Docker image smaller.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the entire application directory into the container at /app
+# This includes your Python script(s), any other necessary files, etc.
+COPY . /app
+
+# Expose the port Streamlit runs on (default is 8501)
+EXPOSE 8501
+
+# Set environment variables if your application needs them (optional)
+# ENV EXAMPLE_VAR="some_value"
+
+# Command to run the Streamlit application when the container launches.
+# --server.headless=true is essential for deployments on platforms like Streamlit Cloud
+# where there's no interactive terminal.
+CMD ["streamlit", "run", "app.py", "--server.headless=true", "--server.port=8501"]
